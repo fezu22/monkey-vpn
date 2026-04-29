@@ -1,0 +1,88 @@
+# Production stub: RAM-only Diskless deployment.
+#
+# Notes for going live:
+#   - emptyDir.medium=Memory backs the SQLite DB in tmpfs (RAM only)
+#   - PriorityClass + readOnlyRootFilesystem
+#   - real VPN gateways live in a separate DaemonSet on bare-metal nodes
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monkey-vpn-backend
+  labels:
+    app: monkey-vpn-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: monkey-vpn-backend
+  template:
+    metadata:
+      labels:
+        app: monkey-vpn-backend
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backend
+          image: ghcr.io/fezu22/monkey-vpn-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: APP_ENV
+              value: production
+            - name: PORT
+              value: '8080'
+            - name: DB_PATH
+              value: /data/monkey.db
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: monkey-vpn-secrets
+                  key: jwt
+            - name: ALLOWED_ORIGINS
+              value: 'https://app.monkeyvpn.io'
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          volumeMounts:
+            - name: ramdisk
+              mountPath: /data
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']
+      volumes:
+        - name: ramdisk
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: monkey-vpn-backend
+spec:
+  selector:
+    app: monkey-vpn-backend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
