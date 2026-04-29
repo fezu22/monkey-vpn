@@ -1,0 +1,42 @@
+# Node
+node_modules/
+.npm/
+.eslintcache
+dist/
+build/
+
+# Vite
+web/dist/
+
+# Go
+backend/monkey-vpn
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# Mobile (RN)
+mobile/ios/Pods/
+mobile/ios/build/
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/build/
+mobile/android/local.properties
+*.keystore
+
+# Devin/local
+*.log
+checklist.txt
