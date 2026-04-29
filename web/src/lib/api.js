@@ -1,4 +1,10 @@
+import { mock } from './mock'
+
 const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080'
+
+// Build-time flag for the demo preview deploy where no backend exists.
+// Set VITE_DEMO=true at build time to use an in-browser mock backend.
+const DEMO = import.meta.env.VITE_DEMO === 'true'
 
 function authHeader() {
   const t = localStorage.getItem('mvpn.token')
@@ -6,6 +12,7 @@ function authHeader() {
 }
 
 async function req(path, opts = {}) {
+  if (DEMO) return mock(path, opts)
   const res = await fetch(`${BASE}${path}`, {
     ...opts,
     headers: {
